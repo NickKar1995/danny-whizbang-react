@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UseInfiniteScrollOptions } from '../types/UseInfiniteScrollOptions';
 import type { UseInfiniteScrollReturn } from '../types/UseInfiniteScrollReturn';
+import type { PrerequisiteForItems } from '../types/PrerequisiteForItems';
 
-export function useInfiniteScroll<T>({
+export function useInfiniteScroll<T extends PrerequisiteForItems>({
   fetchFunction,
   itemsPerPage = 19,
   threshold = 1.0,
   debounceMs = 300,
 }: UseInfiniteScrollOptions<T>): UseInfiniteScrollReturn<T> {
+  console.log('Render InfiniteScroll');
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<T[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -21,7 +23,11 @@ export function useInfiniteScroll<T>({
       try {
         setLoading(true);
         const data = await fetchFunction(pageNum);
-        setItems((prevItems) => [...prevItems, ...data.products]);
+        setItems((prevItems) => {
+          const allItems = [...prevItems, ...data.products];
+          const uniqueItems = Array.from(new Map(allItems.map((item) => [item.id, item])).values());
+          return uniqueItems;
+        });
         setTotalItems(data.total);
 
         if (data.products.length < itemsPerPage) {
