@@ -1,7 +1,11 @@
-import { Button } from 'flowbite-react';
+import { InfiniteScroll } from '../features/infiniteScroll/infiniteScroll';
 
 function App() {
-  return <Button>Click me</Button>;
+  return (
+    <>
+      <InfiniteScroll />
+    </>
+  );
 }
 
 export default App;
