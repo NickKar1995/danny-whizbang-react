@@ -3,6 +3,7 @@ import { fetchProducts } from './api/productsService';
 import { useInfiniteScroll } from './hooks/useInfiniteScroll';
 import { Loader } from '../../shared/loader/loader';
 import type { Product } from './types/Product';
+import { ErrorPanel } from './components/errorPanel';
 
 export function InfiniteScroll() {
   const {
@@ -11,7 +12,7 @@ export function InfiniteScroll() {
     error,
     hasMore,
     loaderRef,
-    // retry,
+    retry,
   } = useInfiniteScroll<Product>({
     fetchFunction: fetchProducts,
     threshold: 1.0,
@@ -21,6 +22,7 @@ export function InfiniteScroll() {
 
   return (
     <>
+      {error && <ErrorPanel retry={retry} />}
       {loading && <Loader />}
       {products.map((product) => (
         <CardComponent key={product.id} title={product.title} body={product.description} />

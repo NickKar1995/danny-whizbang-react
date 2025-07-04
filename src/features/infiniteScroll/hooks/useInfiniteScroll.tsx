@@ -15,8 +15,9 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   const [totalItems, setTotalItems] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  //   const [error, setError] = useState<null | Error>(null);
+  const [error, setError] = useState<null | Error>(null);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const lastFailedPageRef = useRef<number | null>(null);
 
   const loadItems = useCallback(
     async (pageNum: number) => {
@@ -29,20 +30,33 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
           return uniqueItems;
         });
         setTotalItems(data.total);
-
+        setError(null);
+        lastFailedPageRef.current = null;
         if (data.products.length < itemsPerPage) {
           setHasMore(false);
         }
         console.log('δατα', data);
       } catch (error) {
         console.error('Error loading products:', error);
-        // setError(error instanceof Error ? error : new Error('Unknown error'));
+        lastFailedPageRef.current = pageNum;
+        console.log('Last failed page set to:', lastFailedPageRef.current);
+        setError(error instanceof Error ? error : new Error('Unknown error'));
       } finally {
         setLoading(false);
       }
     },
     [fetchFunction, itemsPerPage],
   );
+
+  const retry = useCallback(() => {
+    console.log('Retrying failed page load...', lastFailedPageRef.current);
+    if (lastFailedPageRef.current !== null) {
+      console.log('WENT IN');
+      console.log('Retrying to load items for page:', lastFailedPageRef.current);
+      setError(null);
+      loadItems(lastFailedPageRef.current);
+    }
+  }, [lastFailedPageRef, loadItems]);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -78,8 +92,10 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   return {
     items,
     loading,
+    error,
     totalItems,
     hasMore,
     loaderRef,
+    retry,
   };
 }
