@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import type { UseInfiniteScrollOptions } from '../types/UseInfiniteScrollOptions';
 import type { UseInfiniteScrollReturn } from '../types/UseInfiniteScrollReturn';
 import type { PrerequisiteForItems } from '../types/PrerequisiteForItems';
+import { useInfiniteScrollReducer } from '../reducers/useInfiniteScrollReducer';
+import type { State } from '../reducers/types/State';
 
 export function useInfiniteScroll<T extends PrerequisiteForItems>({
   fetchFunction,
@@ -19,11 +21,28 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   const loaderRef = useRef<HTMLDivElement>(null);
   const lastFailedPageRef = useRef<number | null>(null);
 
+  const initialState: State<T> = {
+    items: [],
+    loading: false,
+    totalItems: 0,
+    hasMore: true,
+    lastFailedPage: null,
+    page: 1,
+    error: null,
+  };
+  const [state, dispatch] = useReducer(useInfiniteScrollReducer, initialState);
+
   const loadItems = useCallback(
     async (pageNum: number) => {
       try {
         setLoading(true);
+
+        dispatch({ type: 'FETCH_START' });
         const data = await fetchFunction(pageNum);
+        dispatch({
+          type: 'FETCH_SUCCESS',
+          payload: { products: data.products, total: data.total, itemsPerPage },
+        });
         setItems((prevItems) => {
           const allItems = [...prevItems, ...data.products];
           const uniqueItems = Array.from(new Map(allItems.map((item) => [item.id, item])).values());
@@ -41,6 +60,7 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
         lastFailedPageRef.current = pageNum;
         console.log('Last failed page set to:', lastFailedPageRef.current);
         setError(error instanceof Error ? error : new Error('Unknown error'));
+        dispatch({type: 'FETCH_ERROR', payload: error instanceof Error ? error : new Error('Unknown error'), page: pageNum});
       } finally {
         setLoading(false);
       }
@@ -49,11 +69,7 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   );
 
   const retry = useCallback(() => {
-    console.log('Retrying failed page load...', lastFailedPageRef.current);
     if (lastFailedPageRef.current !== null) {
-      console.log('WENT IN');
-      console.log('Retrying to load items for page:', lastFailedPageRef.current);
-      setError(null);
       loadItems(lastFailedPageRef.current);
     }
   }, [lastFailedPageRef, loadItems]);
@@ -90,11 +106,11 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   }, [page, loadItems]);
 
   return {
-    items,
-    loading,
-    error,
-    totalItems,
-    hasMore,
+    items: state.items,
+    loading: state.loading,
+    error: state.error,
+    totalItems: state.totalItems,
+    hasMore: state.hasMore,
     loaderRef,
     retry,
   };
