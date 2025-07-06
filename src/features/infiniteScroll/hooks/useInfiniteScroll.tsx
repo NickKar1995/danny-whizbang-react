@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { UseInfiniteScrollOptions } from '../types/UseInfiniteScrollOptions';
 import type { UseInfiniteScrollReturn } from '../types/UseInfiniteScrollReturn';
 import type { PrerequisiteForItems } from '../types/PrerequisiteForItems';
@@ -11,7 +11,7 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
   threshold = 1.0,
   debounceMs = 300,
 }: UseInfiniteScrollOptions<T>): UseInfiniteScrollReturn<T> {
-  const [page, setPage] = useState(1);
+  const pageRef = useRef(1);
   const loaderRef = useRef<HTMLDivElement>(null);
   const lastFailedPageRef = useRef<number | null>(null);
   const initialState = CreateInitialFunction<T>();
@@ -26,6 +26,7 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
           type: 'FETCH_SUCCESS',
           payload: { products: data.products, total: data.total, itemsPerPage },
         });
+        pageRef.current = pageNum + 1;
         lastFailedPageRef.current = null;
         console.log('δατα', data);
       } catch (error) {
@@ -54,7 +55,7 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
         if (entries[0].isIntersecting && state.hasMore && !state.loading) {
           timeoutId = setTimeout(() => {
             console.log('Loading more products...');
-            setPage((prevPage) => prevPage + 1);
+            loadItems(pageRef.current);
           }, debounceMs);
         }
       },
@@ -72,11 +73,11 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
     return () => {
       if (loader) observer.unobserve(loader);
     };
-  }, [state.hasMore, state.loading, threshold, debounceMs]);
+  }, [state.hasMore, state.loading, threshold, debounceMs, loadItems]);
 
   useEffect(() => {
-    loadItems(page);
-  }, [page, loadItems]);
+    loadItems(1);
+  }, [loadItems]);
 
   return {
     items: state.items,

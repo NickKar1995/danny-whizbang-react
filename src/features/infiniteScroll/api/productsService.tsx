@@ -1,10 +1,8 @@
 import type { ApiResponse } from '../types/ApiResponse';
-
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 export const fetchProducts = async (page = 1, limit = 19): Promise<ApiResponse> => {
   try {
-    const response = await fetch(
-      `https://dummyjson.com/products?limit=${limit}&skip=${(page - 1) * limit}`,
-    );
+    const response = await fetch(`${baseUrl}?limit=${limit}&skip=${(page - 1) * limit}`);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
