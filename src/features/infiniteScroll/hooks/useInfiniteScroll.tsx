@@ -28,7 +28,6 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
         });
         pageRef.current = pageNum + 1;
         lastFailedPageRef.current = null;
-        console.log('δατα', data);
       } catch (error) {
         console.error('Error loading products:', error);
         lastFailedPageRef.current = pageNum;
@@ -37,6 +36,8 @@ export function useInfiniteScroll<T extends PrerequisiteForItems>({
           payload: error instanceof Error ? error : new Error('Unknown error'),
           page: pageNum,
         });
+      } finally {
+        pageRef.current = pageNum + 1;
       }
     },
     [fetchFunction, itemsPerPage],
